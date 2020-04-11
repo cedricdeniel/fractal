@@ -15,7 +15,11 @@
 
         figure();
 
-        function figure() {
+        /**
+         * figure
+         */
+        function figure()
+        {
             var delta=0.05;
             for (var i=xmin ; i<xmax; i=i+delta) {
                 for (var j=ymin ; j<ymax; j=j+delta) {
@@ -24,42 +28,74 @@
             }
         }
 
-        function quad(c) {
-            z = [0,0];
-            for (i=0 ; i<20 ; i++) {
-                zp = add(mult(z,z),c);
-                z[0]=zp[0];
-                z[1]=zp[1];
+        /**
+         * quad
+         * @param c
+         * @returns {boolean}
+         */
+        function quad(c)
+        {
+            var z = [0,0];
+            for (var i=0 ; i<20 ; i++) {
+                z = add(mult(z,z),c);
             }
             if (dist(z)<10) { return true; }
             else { return false; }
         }
 
-
-        function geom(c) {
-            z = [1,0];
-            for (i=0 ; i<10 ; i++) {
-                zp = mult(z,c);
-                z[0]=zp[0];
-                z[1]=zp[1];
+        /**
+         * geom
+         * @param c
+         * @returns {boolean}
+         */
+        function geom(c)
+        {
+            var z = [1,0];
+            for (var i=0 ; i<10 ; i++) {
+                z = mult(z,c);
             }
             if (dist(z)<10) { return true; }
             else { return false; }
         }
 
-        function add(z1,z2) {
+        /**
+         * add
+         * @param z1
+         * @param z2
+         * @returns {*[]}
+         */
+        function add(z1,z2)
+        {
             return [z1[0]+z2[0],z1[1]+z2[1]];
         }
 
-        function mult(z1,z2) {
+        /**
+         * multi
+         * @param z1
+         * @param z2
+         * @returns {number[]}
+         */
+        function mult(z1,z2)
+        {
             return [z1[0]*z2[0]-z1[1]*z2[1],z1[0]*z2[1]+z1[1]*z2[0]];
         }
 
-        function dist(z) {
+        /**
+         * dist
+         * @param z
+         * @returns {number}
+         */
+        function dist(z)
+        {
             return Math.sqrt(z[0]*z[0]+z[1]*z[1]);
         }
 
-        function point(z) {
+        /**
+         * point
+         * @param z
+         */
+        function point(z)
+        {
             var canvas  = document.querySelector('#planComplexe');
             var context = canvas.getContext('2d');
             context.fillStyle = "rgb(0,0,0)";
@@ -68,7 +104,11 @@
             context.fill();
         }
 
-        function axes() {
+        /**
+         * axes
+         */
+        function axes()
+        {
             var canvas  = document.querySelector('#planComplexe');
             var context = canvas.getContext('2d');
             context.clearRect ( 0 , 0 , canvas.width, canvas.height );
@@ -88,11 +128,23 @@
             context.stroke();
         }
 
-        function x(re) {
+        /**
+         * x
+         * @param re
+         * @returns {number}
+         */
+        function x(re)
+        {
             return (re-xmin)*900/(xmax-xmin);
         }
 
-        function y(im) {
+        /**
+         * y
+         * @param im
+         * @returns {number}
+         */
+        function y(im)
+        {
             return 900-(im-ymin)*900/(ymax-ymin);
         }
 
