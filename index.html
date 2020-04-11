@@ -9,8 +9,38 @@
     <canvas id="planComplexe" width="900" height="900"><p>Désolé, votre navigateur ne supporte pas Canvas.</p></canvas>
 
     <script>
-        var xmin=-2, xmax=1, ymin=-1.5, ymax=1.5;
+        var scale = [300, 300], center = [-0.5, 0];
         var rayon=5;
+
+        var canvas  = document.querySelector('#planComplexe');
+
+        var viewport = {
+            min : transformGlobalToLocal([0,0]),
+            max : transformGlobalToLocal([canvas.width,canvas.height]),
+            getMinMax : function()
+            {
+                var x_min, x_max, y_min, y_max;
+
+                if (this.min[0] < this.max[0]) {
+                    x_min = this.min[0];
+                    x_max = this.max[0];
+                } else {
+                    x_min = this.max[0];
+                    x_max = this.min[0];
+                }
+
+                if (this.min[1] < this.max[1]) {
+                    y_min = this.min[1];
+                    y_max = this.max[1];
+                } else {
+                    y_min = this.max[1];
+                    y_max = this.min[1];
+                }
+
+                return [x_min, x_max, y_min, y_max];
+            }
+        };
+
         axes();
 
         figure();
@@ -20,10 +50,22 @@
          */
         function figure()
         {
-            var delta=0.05;
+            var minMax = viewport.getMinMax();
+
+            var xmin = minMax[0],
+                xmax = minMax[1],
+                ymin = minMax[2],
+                ymax = minMax[3];
+
+            var delta = 0.05;
+
             for (var i=xmin ; i<xmax; i=i+delta) {
+
                 for (var j=ymin ; j<ymax; j=j+delta) {
-                    if (quad([i,j])) {point([i,j]);}
+
+                    if (quad([i,j])) {
+                        point([i,j]);
+                    }
                 }
             }
         }
@@ -36,11 +78,16 @@
         function quad(c)
         {
             var z = [0,0];
+
             for (var i=0 ; i<20 ; i++) {
                 z = add(mult(z,z),c);
             }
-            if (dist(z)<10) { return true; }
-            else { return false; }
+
+            if (dist(z)<10) {
+                return true;
+            } else {
+                return false;
+            }
         }
 
         /**
@@ -51,11 +98,16 @@
         function geom(c)
         {
             var z = [1,0];
+
             for (var i=0 ; i<10 ; i++) {
                 z = mult(z,c);
             }
-            if (dist(z)<10) { return true; }
-            else { return false; }
+
+            if (dist(z)<10) {
+                return true;
+            } else {
+                return false;
+            }
         }
 
         /**
@@ -94,13 +146,15 @@
          * point
          * @param z
          */
-        function point(z)
+        function point(p)
         {
+            p = transformLocalToGlobal(p);
+
             var canvas  = document.querySelector('#planComplexe');
             var context = canvas.getContext('2d');
             context.fillStyle = "rgb(0,0,0)";
             context.beginPath();
-            context.arc(x(z[0]), y(z[1]), rayon, 0, 2 * Math.PI);
+            context.arc(p[0], p[1], rayon, 0, 2 * Math.PI);
             context.fill();
         }
 
@@ -109,43 +163,116 @@
          */
         function axes()
         {
+            var minMax = viewport.getMinMax();
+
+            var xmin = minMax[0],
+                xmax = minMax[1],
+                ymin = minMax[2],
+                ymax = minMax[3];
+
             var canvas  = document.querySelector('#planComplexe');
             var context = canvas.getContext('2d');
-            context.clearRect ( 0 , 0 , canvas.width, canvas.height );
+
+            var xstart  = transformLocalToGlobal([xmin, 0]),
+                xend    = transformLocalToGlobal([xmax, 0]),
+                ystart  = transformLocalToGlobal([0, ymin]),
+                yend    = transformLocalToGlobal([0, ymax]);
+
+            // draw axis
+            context.clearRect(0 ,0 ,canvas.width, canvas.height);
             context.beginPath();
-            context.moveTo(x(0),y(ymin));
-            context.lineTo(x(0),y(ymax));
-            context.moveTo(x(xmin),y(0));
-            context.lineTo(x(xmax),y(0));
+            context.moveTo(xstart[0]    , xstart[1]);
+            context.lineTo(xend[0]      , xend[1]);
+            context.moveTo(ystart[0]    , ystart[1]);
+            context.lineTo(yend[0]      , yend[1]);
+
+            // draw graduation
+            var pstart, pend;
+
             for (var i=Math.floor(xmin) ; i<xmax ; i++) {
-                context.moveTo(x(i),y(-0.05));
-                context.lineTo(x(i),y(0.05));
+
+                pstart  = transformLocalToGlobal([i, -0.05]);
+                pend    = transformLocalToGlobal([i, 0.05]);
+                context.moveTo(pstart[0],pstart[1]);
+                context.lineTo(pend[0]  ,pend[1]);
             }
+
             for (var i=Math.floor(ymin) ; i<ymax ; i++) {
-                context.moveTo(x(-0.05),y(i));
-                context.lineTo(x(0.05),y(i));
+
+                pstart  = transformLocalToGlobal([-0.05, i]);
+                pend    = transformLocalToGlobal([0.05, i]);
+                context.moveTo(pstart[0],pstart[1]);
+                context.lineTo(pend[0]  ,pend[1]);
             }
+
             context.stroke();
         }
 
         /**
-         * x
-         * @param re
-         * @returns {number}
+         *
+         * @param p
+         * @param scale
+         * @returns {number[]}
          */
-        function x(re)
+        function applyScale(p, scale)
         {
-            return (re-xmin)*900/(xmax-xmin);
+            return [p[0] * scale[0], p[1] * scale[1]];
         }
 
         /**
-         * y
-         * @param im
-         * @returns {number}
+         * translate
+         * @param p
+         * @param translation
+         * @returns {number[]}
          */
-        function y(im)
+        function translate(p, translation)
         {
-            return 900-(im-ymin)*900/(ymax-ymin);
+            return [p[0] + translation[0], p[1] + translation[1]];
+        }
+
+        /**
+         * reflect
+         * @param p
+         * @param reflexion
+         * @returns {number[]}
+         */
+        function reflect(p, reflexion)
+        {
+            return [p[0] * reflexion[0], p[1] * reflexion[1]];
+        }
+
+        /**
+         * transformLocalToGlobal
+         */
+        function transformLocalToGlobal(p)
+        {
+            var canvas  = document.querySelector('#planComplexe');
+            var alignCenter = applyScale(
+                [canvas.width / 2, canvas.height / 2],
+                [1 / scale[0], 1 / scale[1]])
+            ;
+
+            var customCenter = [0 - center[0], 0 - center[1]];
+
+            return applyScale(translate(reflect(translate(p, customCenter), [1, -1]), alignCenter), scale);
+        }
+
+        /**
+         * transformGlobalToLocal
+         * @param p
+         * @returns {number[]}
+         */
+        function transformGlobalToLocal(p)
+        {
+            var canvas  = document.querySelector('#planComplexe');
+            var alignCenter = applyScale(
+                [0-(canvas.width / 2), 0-(canvas.height / 2)],
+                [1 / scale[0], 1 / scale[1]])
+            ;
+
+            var customCenter = [0 - center[0], 0 - center[1]];
+
+            return translate(reflect(translate(applyScale(p, [1 / scale[0], 1 / scale[1]]), alignCenter), [1, -1]), center);
         }
 
     </script>
