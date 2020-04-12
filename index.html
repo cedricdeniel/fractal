@@ -8,6 +8,7 @@
 
     <canvas id="planComplexe" width="900" height="900"><p>Désolé, votre navigateur ne supporte pas Canvas.</p></canvas>
 
+    <script src="./js/math.js"></script>
     <script>
         var scale = [300, 300], center = [-0.5, 0];
         var rayon=5;
@@ -80,10 +81,10 @@
             var z = [0,0];
 
             for (var i=0 ; i<20 ; i++) {
-                z = add(mult(z,z),c);
+                z = Math.cplxAdd(Math.cplxPow(z,2),c);
             }
 
-            if (dist(z)<10) {
+            if (Math.modulus(z)<10) {
                 return true;
             } else {
                 return false;
@@ -100,10 +101,10 @@
             var z = [1,0];
 
             for (var i=0 ; i<10 ; i++) {
-                z = mult(z,c);
+                z = Math.cplxMult(z,c);
             }
 
-            if (dist(z)<10) {
+            if (Math.modulus(z)<10) {
                 return true;
             } else {
                 return false;
@@ -111,40 +112,8 @@
         }
 
         /**
-         * add
-         * @param z1
-         * @param z2
-         * @returns {*[]}
-         */
-        function add(z1,z2)
-        {
-            return [z1[0]+z2[0],z1[1]+z2[1]];
-        }
-
-        /**
-         * multi
-         * @param z1
-         * @param z2
-         * @returns {number[]}
-         */
-        function mult(z1,z2)
-        {
-            return [z1[0]*z2[0]-z1[1]*z2[1],z1[0]*z2[1]+z1[1]*z2[0]];
-        }
-
-        /**
-         * dist
-         * @param z
-         * @returns {number}
-         */
-        function dist(z)
-        {
-            return Math.sqrt(z[0]*z[0]+z[1]*z[1]);
-        }
-
-        /**
          * point
-         * @param z
+         * @param p
          */
         function point(p)
         {
