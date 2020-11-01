@@ -160,13 +160,15 @@
 
                 for (i=0; i<20; i++) {
                     z = Math.cplxAdd(Math.cplxPow(z, 2), c);
+
+                    if (Math.modulus(z) < 10) {
+                        continue;
+                    } else {
+                        return false;
+                    }
                 }
 
-                if (Math.modulus(z) < 10) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return true;
             }
 
             /**
@@ -180,13 +182,15 @@
 
                 for (i=0; i<10; i++) {
                     z = Math.cplxMult(z, c);
+
+                    if (Math.modulus(z) < 10) {
+                        continue;
+                    } else {
+                        return false;
+                    }
                 }
 
-                if (Math.modulus(z) < 10) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return true;
             }
         })();
     </script>
