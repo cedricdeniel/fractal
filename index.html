@@ -3,12 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <title>Fractal</title>
+
+    <style>
+        form {
+            display : flex;
+            flex-direction: row;
+        }
+
+        form .rest {
+            flex : 1 1 auto;
+        }
+    </style>
 </head>
 <body>
     <header>
-        <button type="button" id="btn-draw-geom">Geometric</button>
-        <button type="button" id="btn-draw-quad">Quadratic</button>
-        <button type="button" id="btn-draw-reset">Reset</button>
+        <form>
+            <fieldset>
+                <legend>Shape</legend>
+                <button type="button" id="btn-draw-geom">Geometric</button>
+                <button type="button" id="btn-draw-quad">Quadratic</button>
+                <button type="button" id="btn-draw-reset">Reset</button>
+            </fieldset>
+            <fieldset class="rest">
+                <legend>Frame options</legend>
+                <label for="inpt-zoom">Scale : </label>
+                <input type="range" id="inpt-zoom" min="0" max="20" value="1" step="0.05" list="tickmarks" />
+
+                <datalist id="tickmarks">
+                    <option value="0.25">
+                    <option value="0.5">
+                    <option value="1" label="100%">
+                    <option value="2.5">
+                    <option value="5">
+                    <option value="10">
+                    <option value="20" label="2000%">
+                </datalist>
+
+                <label for="inpt-origin-x">Origin X : </label>
+                <input type="number" id="inpt-origin-x" value="0" step="0.01" />
+                <label for="inpt-origin-y">Origin Y : </label>
+                <input type="number" id="inpt-origin-y" value="0" step="0.01" />
+
+                <label for="inpt-draw-axis">Draw axis : </label>
+                <input type="checkbox" id="inpt-draw-axis" />
+
+                <input type="submit" />
+            </fieldset>
+        </form>
     </header>
     <section>
         <canvas id="plan" width="900" height="900"><p>Désolé, votre navigateur ne supporte pas Canvas.</p></canvas>
@@ -24,14 +65,75 @@
                 ppup        : [.13, .13], // Points per unit percent
                 center      : [-0.5, 0],
                 radius      : 3,
-                drawAxis    : true,
+                drawAxis    : false,
             };
 
             mplan('#plan', options);
 
+            formControl(document.querySelector('form'), options);
+
+            // Form control
+            function formControl(form, opts)
+            {
+                var options = opts || {};
+
+                form.querySelector('#inpt-zoom').value = 1;
+                form.querySelector('#inpt-zoom').addEventListener('click', function(event) {
+                    console.log('Zoom change', event.currentTarget, event.currentTarget.value);
+                });
+
+                form.querySelector('#inpt-origin-x').value = options.center[0];
+                form.querySelector('#inpt-origin-x').addEventListener('keyup', function(event) {
+                    console.log('Origin-X change', event.currentTarget, event.currentTarget.value);
+                });
+
+                form.querySelector('#inpt-origin-x').addEventListener('blur', function(event) {
+                    if ('' === event.currentTarget.value) {
+                        event.currentTarget.value = 0;
+                    }
+                });
+
+                form.querySelector('#inpt-origin-y').value = options.center[1];
+                form.querySelector('#inpt-origin-y').addEventListener('keyup', function(event) {
+                    console.log('Origin-X change', event.currentTarget, event.currentTarget.value);
+                });
+
+                form.querySelector('#inpt-origin-y').addEventListener('blur', function(event) {
+                    if ('' === event.currentTarget.value) {
+                        event.currentTarget.value = 0;
+                    }
+                });
+
+                form.querySelector('#inpt-draw-axis').checked = options.drawAxis;
+                form.querySelector('#inpt-draw-axis').addEventListener('click', function(event) {
+                    console.log('Draw axis change', event.currentTarget, event.currentTarget.value, event.currentTarget.checked);
+                });
+
+                form.addEventListener('submit', function(event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+
+                    var mFrame = canvas.getFrame();
+
+                    var zoomValue = parseFloat(form.querySelector('#inpt-zoom').value);
+                    mFrame.setZoom([zoomValue, zoomValue]);
+
+                    var origin = [
+                        parseFloat(form.querySelector('#inpt-origin-x').value),
+                        parseFloat(form.querySelector('#inpt-origin-y').value)
+                    ];
+
+                    mFrame.setCenter(origin);
+
+                    mFrame.setDrawAxis(form.querySelector('#inpt-draw-axis').checked);
+
+                    mFrame.draw();
+                })
+            }
+
             var canvas  = document.querySelector('#plan');
 
-            drawNoop();
+            drawQuadratic();
 
             document.querySelector('#btn-draw-reset').addEventListener('click', function() {
                 drawNoop();
@@ -106,9 +208,44 @@
 
                     for (j=ymin ; j<ymax; j=j+deltaY) {
 
-                        if (quad([i,j])) {
-                            draw.point([i,j]);
+                        var q;
 
+                        if (true === (q = quad([i,j]))) {
+                            draw.point([i,j], '#e09910');
+                        } else {
+
+                            switch(true) {
+                                case q >= 320 :
+                                    draw.point([i,j], '#000022');
+                                    break;
+                                case q >= 120 :
+                                    draw.point([i,j], '#9fcfe2');
+                                    break;
+                                case q >= 40 :
+                                    draw.point([i,j], '#a24c06');
+                                    break;
+                                case q >= 20 :
+                                    draw.point([i,j], '#5b5be2');
+                                    break;
+                                case q >= 16 :
+                                    draw.point([i,j], '#097ca0');
+                                    break;
+                                case q >= 13 :
+                                    draw.point([i,j], '#5bb9e2');
+                                    break;
+                                case q >= 10 :
+                                    draw.point([i,j], '#8fd3ec');
+                                    break
+                                case q >= 8 :
+                                    draw.point([i,j], '#a2dcf1');
+                                    break;
+                                case q >= 6 :
+                                    draw.point([i,j], '#cae8f5');
+                                    break;
+                                case q >= 4 :
+                                    draw.point([i,j], '#ecf7fc');
+                                    break;
+                            }
                         }
                     }
                 }
@@ -152,19 +289,19 @@
             /**
              * quad
              * @param c
-             * @returns {boolean}
+             * @returns {number|boolean}
              */
             function quad(c)
             {
                 var z = [0,0], i;
 
-                for (i=0; i<20; i++) {
+                for (i=0; i<2000; i++) {
                     z = Math.cplxAdd(Math.cplxPow(z, 2), c);
 
                     if (Math.modulus(z) < 10) {
                         continue;
                     } else {
-                        return false;
+                        return i != 0 ? i-1 : 0;
                     }
                 }
 
