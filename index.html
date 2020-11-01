@@ -19,12 +19,15 @@
     <script>
         (function() {
 
-            mplan('#plan', {
+            var options = {
                 scale       : [300, 300],
+                ppup        : [.13, .13], // Points per unit percent
                 center      : [-0.5, 0],
                 radius      : 3,
                 drawAxis    : true,
-            });
+            };
+
+            mplan('#plan', options);
 
             var canvas  = document.querySelector('#plan');
 
@@ -82,18 +85,26 @@
              */
             function quadraticShape(draw)
             {
-                var minMax = draw.getFrame().getMinMax();
+                var mFrame = draw.getFrame();
+                var minMax = mFrame.getMinMax();
 
                 var xmin = minMax[0],
                     xmax = minMax[1],
                     ymin = minMax[2],
                     ymax = minMax[3];
 
-                var delta = 0.025, i, j;
+                var deltaX, deltaY, i, j;
 
-                for (i=xmin ; i<xmax; i=i+delta) {
+                var scale = mFrame.getOption('scale'),
+                    ppup = mFrame.getOption('ppup')
+                ;
 
-                    for (j=ymin ; j<ymax; j=j+delta) {
+                deltaX = 1 / (scale[0] * ppup[0]);
+                deltaY = 1 / (scale[1] * ppup[1]);
+
+                for (i=xmin ; i<xmax; i=i+deltaX) {
+
+                    for (j=ymin ; j<ymax; j=j+deltaY) {
 
                         if (quad([i,j])) {
                             draw.point([i,j]);
@@ -110,18 +121,26 @@
              */
             function geometricShape(draw)
             {
-                var minMax = draw.getFrame().getMinMax();
+                var mFrame = draw.getFrame();
+                var minMax = mFrame.getMinMax();
 
                 var xmin = minMax[0],
                     xmax = minMax[1],
                     ymin = minMax[2],
                     ymax = minMax[3];
 
-                var delta = 0.025, i, j;
+                var deltaX, deltaY, i, j;
 
-                for (i=xmin ; i<xmax; i=i+delta) {
+                var scale = mFrame.getOption('scale'),
+                    ppup = mFrame.getOption('ppup')
+                ;
 
-                    for (j=ymin ; j<ymax; j=j+delta) {
+                deltaX = 1 / (scale[0] * ppup[0]);
+                deltaY = 1 / (scale[1] * ppup[1]);
+
+                for (i=xmin ; i<xmax; i=i+deltaX) {
+
+                    for (j=ymin ; j<ymax; j=j+deltaY) {
 
                         if (geom([i,j])) {
                             draw.point([i,j]);

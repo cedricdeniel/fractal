@@ -32,11 +32,15 @@
             // Default options
             var options = {
                 scale           : opts.scale            ? opts.scale        : [1, 1],
+                ppup            : opts.ppup             ? opts.ppup         : [1, 1],
                 center          : opts.center           ? opts.center       : [0, 0],
                 radius          : opts.radius           ? opts.radius       : 1,
                 drawAxis        : 'drawAxis' in opts    ? !!opts.drawAxis   : true,
                 defaultColor    : opts.defaultColor     ? opts.defaultColor : '#000000',
             };
+
+            options.defaultScale    = options.scale;
+            options.zoom            = [1, 1];
 
             var drawFn      = noop,
                 drawObject  = buildDrawObject(),
@@ -47,6 +51,18 @@
 
                 setScale : function(value) {
                     setOption('scale', value);
+                    setOption('zoom', [
+                        value[0] / getOption('defaultScale')[0],
+                        value[1] / getOption('defaultScale')[1],
+                    ]);
+                },
+
+                setZoom : function(value) {
+                    setOption('zoom', value);
+                    setOption('scale', [
+                        getOption('defaultScale')[0] * value[0],
+                        getOption('defaultScale')[1] * value[1],
+                    ]);
                 },
 
                 setCenter : function(value) {
@@ -74,6 +90,8 @@
                 },
 
                 draw : function() {
+
+                    viewport = buildViewport();
 
                     if (arguments.length) {
 
@@ -248,8 +266,6 @@
                     [0-(element.width / 2), 0-(element.height / 2)],
                     [1 / scale[0], 1 / scale[1]])
                 ;
-
-                var customCenter = [0 - center[0], 0 - center[1]];
 
                 return translate(reflect(translate(applyScale(p, [1 / scale[0], 1 / scale[1]]), alignCenter), [1, -1]), center);
             }
