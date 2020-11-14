@@ -197,38 +197,13 @@
              */
             function geometricShape(draw)
             {
-                var mFrame = draw.getFrame();
-                var minMax = mFrame.getMinMax();
-
-                var xmin = minMax[0],
-                    xmax = minMax[1],
-                    ymin = minMax[2],
-                    ymax = minMax[3];
-
-                var deltaX, deltaY, i, j;
-
-                var scale = mFrame.getOption('scale'),
-                    ppup = mFrame.getOption('ppup')
-                ;
-
-                deltaX = 1 / (scale[0] * ppup[0]);
-                deltaY = 1 / (scale[1] * ppup[1]);
-
-                for (i=xmin ; i<xmax; i=i+deltaX) {
-
-                    for (j=ymin ; j<ymax; j=j+deltaY) {
-
-                        if (geom([i,j])) {
-                            draw.point([i,j], '#fff');
-                        }
-                    }
-                }
+                drawingFractal(draw, geom);
             }
 
             /**
              * quad
              * @param c
-             * @returns {number|boolean|null}
+             * @returns {number|null}
              */
             function quad(c)
             {
@@ -249,25 +224,29 @@
             /**
              * geom
              * @param c
-             * @returns {boolean}
+             * @returns {number|null}
              */
             function geom(c)
             {
                 var z = [1,0], i;
 
-                for (i=0; i<10; i++) {
+                for (i = 0; i < 2000; i++) {
+
                     z = Math.cplxMult(z, c);
 
-                    if (Math.modulus(z) < 10) {
-                        continue;
-                    } else {
-                        return false;
+                    if (Math.modulus(z) >= 2) {
+                        return i;
                     }
                 }
 
-                return true;
+                return null;
             }
 
+            /**
+             * drawingFractal
+             * @param draw
+             * @param fractalFn
+             */
             function drawingFractal(draw, fractalFn)
             {
                 var mFrame = draw.getFrame();
