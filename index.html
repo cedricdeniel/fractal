@@ -52,7 +52,7 @@
         </form>
     </header>
     <section>
-        <canvas id="plan" width="900" height="900"><p>Désolé, votre navigateur ne supporte pas Canvas.</p></canvas>
+        <canvas id="plan" width="900" height="900" style="background:black;"><p>Désolé, votre navigateur ne supporte pas Canvas.</p></canvas>
     </section>
 
     <script src="js/math.js"></script>
@@ -187,68 +187,7 @@
              */
             function quadraticShape(draw)
             {
-                var mFrame = draw.getFrame();
-                var minMax = mFrame.getMinMax();
-
-                var xmin = minMax[0],
-                    xmax = minMax[1],
-                    ymin = minMax[2],
-                    ymax = minMax[3];
-
-                var deltaX, deltaY, i, j;
-
-                var scale = mFrame.getOption('scale'),
-                    ppup = mFrame.getOption('ppup')
-                ;
-
-                deltaX = 1 / (scale[0] * ppup[0]);
-                deltaY = 1 / (scale[1] * ppup[1]);
-
-                for (i=xmin ; i<xmax; i=i+deltaX) {
-
-                    for (j=ymin ; j<ymax; j=j+deltaY) {
-
-                        var q;
-
-                        if (true === (q = quad([i,j]))) {
-                            draw.point([i,j], '#e09910');
-                        } else {
-
-                            switch(true) {
-                                case q >= 320 :
-                                    draw.point([i,j], '#000022');
-                                    break;
-                                case q >= 120 :
-                                    draw.point([i,j], '#9fcfe2');
-                                    break;
-                                case q >= 40 :
-                                    draw.point([i,j], '#a24c06');
-                                    break;
-                                case q >= 20 :
-                                    draw.point([i,j], '#5b5be2');
-                                    break;
-                                case q >= 16 :
-                                    draw.point([i,j], '#097ca0');
-                                    break;
-                                case q >= 13 :
-                                    draw.point([i,j], '#5bb9e2');
-                                    break;
-                                case q >= 10 :
-                                    draw.point([i,j], '#8fd3ec');
-                                    break
-                                case q >= 8 :
-                                    draw.point([i,j], '#a2dcf1');
-                                    break;
-                                case q >= 6 :
-                                    draw.point([i,j], '#cae8f5');
-                                    break;
-                                case q >= 4 :
-                                    draw.point([i,j], '#ecf7fc');
-                                    break;
-                            }
-                        }
-                    }
-                }
+                drawingFractal(draw, quad);
             }
 
             /**
@@ -280,7 +219,7 @@
                     for (j=ymin ; j<ymax; j=j+deltaY) {
 
                         if (geom([i,j])) {
-                            draw.point([i,j]);
+                            draw.point([i,j], '#fff');
                         }
                     }
                 }
@@ -304,7 +243,7 @@
                     }
                 }
 
-                return true;
+                return null;
             }
 
             /**
@@ -327,6 +266,101 @@
                 }
 
                 return true;
+            }
+
+            function drawingFractal(draw, fractalFn)
+            {
+                var mFrame = draw.getFrame();
+                var minMax = mFrame.getMinMax();
+
+                var xmin = minMax[0],
+                    xmax = minMax[1],
+                    ymin = minMax[2],
+                    ymax = minMax[3];
+
+                var deltaX, deltaY, i, j;
+
+                var scale = mFrame.getOption('scale'),
+                    ppup = mFrame.getOption('ppup')
+                ;
+
+                deltaX = 1 / (scale[0] * ppup[0]);
+                deltaY = 1 / (scale[1] * ppup[1]);
+
+                var points = [];
+
+                for (i=xmin ; i<xmax; i = i + deltaX) {
+
+                    for (j=ymin ; j<ymax; j = j + deltaY) {
+
+                        var rank = fractalFn([i,j]);
+
+                        if (null === rank) {
+                            continue;
+                        }
+
+                        if (undefined === points[rank]) {
+                            points[rank] = [];
+                        }
+
+                        points[rank].push([i,j]);
+                    }
+                }
+
+                var totalCount = points.reduce(countTotal, 0);
+
+                var cumulativeCount = 0;
+
+                points.map(drawPoints);
+
+                /**
+                 * countTotal
+                 * @param count
+                 * @param rank
+                 * @returns {number}
+                 */
+                function countTotal(count, rank)
+                {
+                    return count + (Array.isArray(rank) ? rank.length : 0);
+                }
+
+                /**
+                 * drawPoints
+                 * @param points
+                 */
+                function drawPoints(points)
+                {
+                    if (!Array.isArray(points) || 0 === points.length) {
+                        return;
+                    }
+
+                    cumulativeCount += points.length;
+
+                    var color = calcColor(cumulativeCount / totalCount);
+
+                    points.map(function(p) {
+                        draw.point([p[0], p[1]], color);
+                    });
+                }
+            }
+
+            /**
+             * calcColor
+             * @param percent
+             * @returns {string}
+             */
+            function calcColor(percent)
+            {
+                var startColor = [2, 1, 0],
+                    endColor = [8, .7, .8];
+
+                var h, s, l;
+
+                h = (Math.round(percent * (endColor[0]-startColor[0])) + startColor[0]) % 360;
+                s = Math.round((percent * (endColor[1]-startColor[1]) + startColor[1]) * 100);
+                l = Math.round((percent * (endColor[2]-startColor[2]) + startColor[2]) * 100);
+
+                return 'hsl(' + h + ',' + s + '%,' + l + '%)';
             }
         })();
     </script>
