@@ -2,9 +2,11 @@
 
     window.Fractal = {
         mandelbrot  : buildMandelbrotSet(),
+        dendrite    : buildJuliaSet([0, 1]),
         geometric   : geometric,
 
-        buildMandelbrotSet : buildMandelbrotSet,
+        buildMandelbrotSet  : buildMandelbrotSet,
+        buildJuliaSet       : buildJuliaSet,
     };
 
     /**
@@ -27,6 +29,33 @@
         {
             return divergesAfter(
                 buildPolynomialIterator([0,0], c, d),
+                2000,
+                2
+            );
+        }
+    }
+
+    /**
+     * buildJuliaSet
+     * @param cf
+     * @param d
+     * @returns {function(*=): (number|boolean)}
+     */
+    function buildJuliaSet(cf, d)
+    {
+        d = d || 2;
+
+        return julia;
+
+        /**
+         * julia
+         * @param c
+         * @returns {number|boolean}
+         */
+        function julia(c)
+        {
+            return divergesAfter(
+                buildPolynomialIterator(c, cf, d),
                 2000,
                 2
             );
