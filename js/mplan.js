@@ -29,6 +29,8 @@
          */
         function buildFrame(element, opts)
         {
+            getContext().setTransform(1, 0, 0, -1, element.width / 2, element.height / 2);
+
             // Default options
             var options = {
                 scale           : opts.scale            ? opts.scale        : [1, 1],
@@ -37,10 +39,10 @@
                 radius          : opts.radius           ? opts.radius       : 1,
                 drawAxis        : 'drawAxis' in opts    ? !!opts.drawAxis   : true,
                 defaultColor    : opts.defaultColor     ? opts.defaultColor : '#000000',
+                zoom            : null
             };
 
             options.defaultScale    = options.scale;
-            options.zoom            = [1, 1];
 
             var drawFn      = noop,
                 drawObject  = buildDrawObject(),
@@ -67,6 +69,15 @@
 
                 setCenter : function(value) {
                     setOption('center', value);
+
+                    var c = transformLocalToGlobal(value);
+
+                    var matrix = getContext().getTransform();
+
+                    matrix.e = (element.width / 2) - c[0];
+                    matrix.f = (element.height / 2) + c[1];
+
+                    getContext().setTransform(matrix);
                 },
 
                 setRadius : function(value) {
@@ -107,6 +118,12 @@
                     return this;
                 }
             };
+
+            // Update transform matrix
+            frame.setCenter(getOption('center'));
+
+            // Initialize zoom value
+            frame.setScale(getOption('scale'));
 
             return frame;
 
@@ -213,43 +230,13 @@
             }
 
             /**
-             * translate
-             * @param p
-             * @param translation
-             * @returns {number[]}
-             */
-            function translate(p, translation)
-            {
-                return [p[0] + translation[0], p[1] + translation[1]];
-            }
-
-            /**
-             * reflect
-             * @param p
-             * @param reflexion
-             * @returns {number[]}
-             */
-            function reflect(p, reflexion)
-            {
-                return [p[0] * reflexion[0], p[1] * reflexion[1]];
-            }
-
-            /**
              * transformLocalToGlobal
              */
             function transformLocalToGlobal(p)
             {
-                var scale   = getOption('scale'),
-                    center  = getOption('center');
+                var scale = getOption('scale');
 
-                var alignCenter = applyScale(
-                    [element.width / 2, element.height / 2],
-                    [1 / scale[0], 1 / scale[1]])
-                ;
-
-                var customCenter = [0 - center[0], 0 - center[1]];
-
-                return applyScale(translate(reflect(translate(p, customCenter), [1, -1]), alignCenter), scale);
+                return applyScale(p, scale);
             }
 
             /**
@@ -259,15 +246,9 @@
              */
             function transformGlobalToLocal(p)
             {
-                var scale   = getOption('scale'),
-                    center  = getOption('center');
+                var scale = getOption('scale');
 
-                var alignCenter = applyScale(
-                    [0-(element.width / 2), 0-(element.height / 2)],
-                    [1 / scale[0], 1 / scale[1]])
-                ;
-
-                return translate(reflect(translate(applyScale(p, [1 / scale[0], 1 / scale[1]]), alignCenter), [1, -1]), center);
+                return applyScale(p, [1 / scale[0], 1 / scale[1]]);
             }
 
             /**
@@ -279,8 +260,16 @@
                 return {
 
                     clear : function clear() {
+
                         var context = getContext();
+
+                        var matrix = context.getTransform();
+
+                        context.setTransform(1, 0, 0, 1, 0, 0);
+
                         context.clearRect(0, 0, element.width, element.height);
+
+                        context.setTransform(matrix);
                     },
 
                     point : function point(p, color) {
@@ -290,10 +279,9 @@
                         p = transformLocalToGlobal(p);
 
                         var context = getContext();
+
                         context.fillStyle = color;
-                        context.beginPath();
-                        context.arc(p[0], p[1], getOption('radius'), 0, 2 * Math.PI);
-                        context.fill();
+                        context.fillRect(p[0], p[1], getOption('radius'), getOption('radius'))
                     },
 
                     getFrame : function() {
@@ -308,11 +296,16 @@
              */
             function buildViewport()
             {
+                var matrix = getContext().getTransform()
+
+                var min = [matrix.a * (0 - matrix.e), matrix.d * (0 - matrix.f)];
+                var max = [matrix.a * (element.width - matrix.e), matrix.d * (element.height - matrix.f)];
+
                 return {
 
-                    min : transformGlobalToLocal([0, 0]),
+                    min : transformGlobalToLocal(min),
 
-                    max : transformGlobalToLocal([element.width, element.height]),
+                    max : transformGlobalToLocal(max),
 
                     getMinMax : function() {
 
