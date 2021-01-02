@@ -57,6 +57,7 @@
                         value[0] / getOption('defaultScale')[0],
                         value[1] / getOption('defaultScale')[1],
                     ]);
+                    this.setCenter(getOption('center'));
                 },
 
                 setZoom : function(value) {
@@ -65,6 +66,7 @@
                         getOption('defaultScale')[0] * value[0],
                         getOption('defaultScale')[1] * value[1],
                     ]);
+                    this.setCenter(getOption('center'));
                 },
 
                 setCenter : function(value) {
@@ -104,6 +106,10 @@
 
                     viewport = buildViewport();
 
+                    console.log('%cDrawing...', 'font-weight:800;');
+                    console.log('Origin', '[', getOption('center')[0], ',', getOption('center')[1], ']');
+                    console.log('Zoom', 'x', getOption('zoom')[0]);
+
                     if (arguments.length) {
 
                         if (typeof arguments[0] === 'function') {
@@ -111,8 +117,8 @@
                         }
                     } else {
                         drawObject.clear();
-                        drawAxis(drawObject);
                         drawFn(drawObject);
+                        drawAxis(drawObject);
                     }
 
                     return this;
@@ -125,7 +131,48 @@
             // Initialize zoom value
             frame.setScale(getOption('scale'));
 
+            // Add event listeners on canvas
+            canvas.addEventListener('click',        addListenerOnZoom('in'));
+            canvas.addEventListener('contextmenu',  addListenerOnZoom('out'));
+
             return frame;
+
+            /**
+             * onZoom
+             * @param direction
+             * @returns {function(*): void}
+             */
+            function addListenerOnZoom(direction)
+            {
+                if (direction !== 'in' && direction !== 'out') {
+                    direction = 'in';
+                }
+
+                return onZoom;
+
+                /**
+                 * onZoom
+                 * @param event
+                 */
+                function onZoom(event)
+                {
+                    event.stopPropagation();
+                    event.preventDefault();
+
+                    var matrix = getContext().getTransform();
+
+                    var p1 = [matrix.a * (event.offsetX - matrix.e), matrix.d * (event.offsetY - matrix.f)];
+
+                    var p = transformGlobalToLocal(p1);
+
+                    var zoom = (direction === 'out') ? [getOption('zoom')[0] / 2, getOption('zoom')[0] / 2]
+                        : [2 * getOption('zoom')[0], 2 * getOption('zoom')[0]];
+
+                    frame.setCenter(p);
+                    frame.setZoom(zoom);
+                    frame.draw();
+                }
+            }
 
             /**
              * setOption

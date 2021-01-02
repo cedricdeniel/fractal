@@ -30,28 +30,9 @@
             </fieldset>
             <fieldset class="rest">
                 <legend>Frame options</legend>
-                <label for="inpt-zoom">Scale : </label>
-                <input type="range" id="inpt-zoom" min="0" max="20" value="1" step="0.05" list="tickmarks" />
-
-                <datalist id="tickmarks">
-                    <option value="0.25">
-                    <option value="0.5">
-                    <option value="1" label="100%">
-                    <option value="2.5">
-                    <option value="5">
-                    <option value="10">
-                    <option value="20" label="2000%">
-                </datalist>
-
-                <label for="inpt-origin-x">Origin X : </label>
-                <input type="number" id="inpt-origin-x" value="0" step="0.01" />
-                <label for="inpt-origin-y">Origin Y : </label>
-                <input type="number" id="inpt-origin-y" value="0" step="0.01" />
 
                 <label for="inpt-draw-axis">Draw axis : </label>
                 <input type="checkbox" id="inpt-draw-axis" />
-
-                <input type="submit" />
             </fieldset>
         </form>
     </header>
@@ -82,58 +63,26 @@
             {
                 var options = opts || {};
 
-                form.querySelector('#inpt-zoom').value = 1;
-                form.querySelector('#inpt-zoom').addEventListener('click', function(event) {
-                    console.log('Zoom change', event.currentTarget, event.currentTarget.value);
-                });
+                var inptDrawAxis = form.querySelector('#inpt-draw-axis');
 
-                form.querySelector('#inpt-origin-x').value = options.center[0];
-                form.querySelector('#inpt-origin-x').addEventListener('keyup', function(event) {
-                    console.log('Origin-X change', event.currentTarget, event.currentTarget.value);
-                });
+                inptDrawAxis.checked = options.drawAxis;
 
-                form.querySelector('#inpt-origin-x').addEventListener('blur', function(event) {
-                    if ('' === event.currentTarget.value) {
-                        event.currentTarget.value = 0;
-                    }
-                });
+                inptDrawAxis.addEventListener('click', function(event) {
 
-                form.querySelector('#inpt-origin-y').value = options.center[1];
-                form.querySelector('#inpt-origin-y').addEventListener('keyup', function(event) {
-                    console.log('Origin-X change', event.currentTarget, event.currentTarget.value);
-                });
-
-                form.querySelector('#inpt-origin-y').addEventListener('blur', function(event) {
-                    if ('' === event.currentTarget.value) {
-                        event.currentTarget.value = 0;
-                    }
-                });
-
-                form.querySelector('#inpt-draw-axis').checked = options.drawAxis;
-                form.querySelector('#inpt-draw-axis').addEventListener('click', function(event) {
-                    console.log('Draw axis change', event.currentTarget, event.currentTarget.value, event.currentTarget.checked);
-                });
-
-                form.addEventListener('submit', function(event) {
                     event.stopPropagation();
-                    event.preventDefault();
+
+                    // Do not prevent default otherwise input is never checked
+                    // event.preventDefault();
 
                     var mFrame = canvas.getFrame();
 
-                    var zoomValue = parseFloat(form.querySelector('#inpt-zoom').value);
-                    mFrame.setZoom([zoomValue, zoomValue]);
+                    mFrame.setDrawAxis(inptDrawAxis.checked);
 
-                    var origin = [
-                        parseFloat(form.querySelector('#inpt-origin-x').value),
-                        parseFloat(form.querySelector('#inpt-origin-y').value)
-                    ];
-
-                    mFrame.setCenter(origin);
-
-                    mFrame.setDrawAxis(form.querySelector('#inpt-draw-axis').checked);
-
-                    mFrame.draw();
-                })
+                    // Delay draw call to avoid delay on input checking behaviour
+                    window.setTimeout(function() {
+                        mFrame.draw();
+                    });
+                });
             }
 
             var canvas  = document.querySelector('#plan');
@@ -232,7 +181,7 @@
                     var cumulativeCount = 0;
 
                     points.map(drawPoints);
-                    
+
                     /**
                      * countTotal
                      * @param count
