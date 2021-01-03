@@ -21,33 +21,18 @@
             <fieldset>
                 <legend>Shape</legend>
                 <button type="button" id="btn-draw-geom">Geometric</button>
-                <button type="button" id="btn-draw-quad">Quadratic</button>
+                <button type="button" id="btn-draw-mbrot">Mandelbrot</button>
+                <button type="button" id="btn-draw-julia-1">Julia (0, 1)</button>
+                <button type="button" id="btn-draw-julia-2">Julia (-1.476, 0)</button>
+                <button type="button" id="btn-draw-julia-3">Julia (-.8, 0)</button>
+                <button type="button" id="btn-draw-julia-4">Julia (0.285, 0.013)</button>
                 <button type="button" id="btn-draw-reset">Reset</button>
             </fieldset>
             <fieldset class="rest">
                 <legend>Frame options</legend>
-                <label for="inpt-zoom">Scale : </label>
-                <input type="range" id="inpt-zoom" min="0" max="20" value="1" step="0.05" list="tickmarks" />
-
-                <datalist id="tickmarks">
-                    <option value="0.25">
-                    <option value="0.5">
-                    <option value="1" label="100%">
-                    <option value="2.5">
-                    <option value="5">
-                    <option value="10">
-                    <option value="20" label="2000%">
-                </datalist>
-
-                <label for="inpt-origin-x">Origin X : </label>
-                <input type="number" id="inpt-origin-x" value="0" step="0.01" />
-                <label for="inpt-origin-y">Origin Y : </label>
-                <input type="number" id="inpt-origin-y" value="0" step="0.01" />
 
                 <label for="inpt-draw-axis">Draw axis : </label>
                 <input type="checkbox" id="inpt-draw-axis" />
-
-                <input type="submit" />
             </fieldset>
         </form>
     </header>
@@ -56,6 +41,7 @@
     </section>
 
     <script src="js/math.js"></script>
+    <script src="js/fractal.js"></script>
     <script src="js/mplan.js"></script>
     <script>
         (function() {
@@ -77,249 +63,154 @@
             {
                 var options = opts || {};
 
-                form.querySelector('#inpt-zoom').value = 1;
-                form.querySelector('#inpt-zoom').addEventListener('click', function(event) {
-                    console.log('Zoom change', event.currentTarget, event.currentTarget.value);
-                });
+                var inptDrawAxis = form.querySelector('#inpt-draw-axis');
 
-                form.querySelector('#inpt-origin-x').value = options.center[0];
-                form.querySelector('#inpt-origin-x').addEventListener('keyup', function(event) {
-                    console.log('Origin-X change', event.currentTarget, event.currentTarget.value);
-                });
+                inptDrawAxis.checked = options.drawAxis;
 
-                form.querySelector('#inpt-origin-x').addEventListener('blur', function(event) {
-                    if ('' === event.currentTarget.value) {
-                        event.currentTarget.value = 0;
-                    }
-                });
+                inptDrawAxis.addEventListener('click', function(event) {
 
-                form.querySelector('#inpt-origin-y').value = options.center[1];
-                form.querySelector('#inpt-origin-y').addEventListener('keyup', function(event) {
-                    console.log('Origin-X change', event.currentTarget, event.currentTarget.value);
-                });
-
-                form.querySelector('#inpt-origin-y').addEventListener('blur', function(event) {
-                    if ('' === event.currentTarget.value) {
-                        event.currentTarget.value = 0;
-                    }
-                });
-
-                form.querySelector('#inpt-draw-axis').checked = options.drawAxis;
-                form.querySelector('#inpt-draw-axis').addEventListener('click', function(event) {
-                    console.log('Draw axis change', event.currentTarget, event.currentTarget.value, event.currentTarget.checked);
-                });
-
-                form.addEventListener('submit', function(event) {
                     event.stopPropagation();
-                    event.preventDefault();
+
+                    // Do not prevent default otherwise input is never checked
+                    // event.preventDefault();
 
                     var mFrame = canvas.getFrame();
 
-                    var zoomValue = parseFloat(form.querySelector('#inpt-zoom').value);
-                    mFrame.setZoom([zoomValue, zoomValue]);
+                    mFrame.setDrawAxis(inptDrawAxis.checked);
 
-                    var origin = [
-                        parseFloat(form.querySelector('#inpt-origin-x').value),
-                        parseFloat(form.querySelector('#inpt-origin-y').value)
-                    ];
-
-                    mFrame.setCenter(origin);
-
-                    mFrame.setDrawAxis(form.querySelector('#inpt-draw-axis').checked);
-
-                    mFrame.draw();
-                })
+                    // Delay draw call to avoid delay on input checking behaviour
+                    window.setTimeout(function() {
+                        mFrame.draw();
+                    });
+                });
             }
 
             var canvas  = document.querySelector('#plan');
 
-            drawQuadratic();
+            var drawNoop = draw(function() {});
+            var drawGeometric = draw(fractalShape(Fractal.geometric));
+            var drawMandelbrot = draw(fractalShape(Fractal.mandelbrot));
+            var drawDendrite = draw(fractalShape(Fractal.dendrite));
 
-            document.querySelector('#btn-draw-reset').addEventListener('click', function() {
-                drawNoop();
-            });
+            drawMandelbrot();
 
-            document.querySelector('#btn-draw-geom').addEventListener('click', function() {
-                drawGeometric();
-            });
-
-            document.querySelector('#btn-draw-quad').addEventListener('click', function() {
-                drawQuadratic();
-            });
-
-            /**
-             * drawNoop
-             */
-            function drawNoop()
-            {
-                canvas.getFrame()
-                    .draw(function() {})
-                    .draw()
-                ;
-            }
+            document.querySelector('#btn-draw-reset').addEventListener('click', drawNoop);
+            document.querySelector('#btn-draw-geom').addEventListener('click', drawGeometric);
+            document.querySelector('#btn-draw-mbrot').addEventListener('click', drawMandelbrot);
+            document.querySelector('#btn-draw-julia-1').addEventListener('click', drawDendrite);
+            document.querySelector('#btn-draw-julia-2').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([-1.476, 0]))));
+            document.querySelector('#btn-draw-julia-3').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([-.8, 0]))));
+            document.querySelector('#btn-draw-julia-4').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([0.285, 0.013]))));
 
             /**
-             * drawQuadratic
+             * draw
+             * @param shapeFn
              */
-            function drawQuadratic()
+            function draw(shapeFn)
             {
-                canvas.getFrame()
-                    .draw(quadraticShape)
-                    .draw()
-                ;
-            }
+                return _draw;
 
-            /**
-             * drawGeometric
-             */
-            function drawGeometric()
-            {
-                canvas.getFrame()
-                    .draw(geometricShape)
-                    .draw()
-                ;
-            }
-
-            /**
-             * quadraticShape
-             * @param draw
-             * @returns void
-             */
-            function quadraticShape(draw)
-            {
-                drawingFractal(draw, quad);
-            }
-
-            /**
-             * geometricShape
-             * @param draw
-             * @returns void
-             */
-            function geometricShape(draw)
-            {
-                drawingFractal(draw, geom);
-            }
-
-            /**
-             * quad
-             * @param c
-             * @returns {number|null}
-             */
-            function quad(c)
-            {
-                var z = [0,0], i;
-
-                for (i = 0; i < 2000; i++) {
-
-                    z = Math.cplxAdd(Math.cplxPow(z, 2), c);
-
-                    if (Math.modulus(z) >= 2) {
-                        return i;
-                    }
+                /**
+                 * _draw
+                 * @returns void
+                 */
+                function _draw()
+                {
+                    canvas
+                        .getFrame()
+                        .draw(shapeFn)
+                        .draw()
+                    ;
                 }
-
-                return null;
             }
 
             /**
-             * geom
-             * @param c
-             * @returns {number|null}
-             */
-            function geom(c)
-            {
-                var z = [1,0], i;
-
-                for (i = 0; i < 2000; i++) {
-
-                    z = Math.cplxMult(z, c);
-
-                    if (Math.modulus(z) >= 2) {
-                        return i;
-                    }
-                }
-
-                return null;
-            }
-
-            /**
-             * drawingFractal
-             * @param draw
+             * fractalShape
              * @param fractalFn
              */
-            function drawingFractal(draw, fractalFn)
+            function fractalShape(fractalFn)
             {
-                var mFrame = draw.getFrame();
-                var minMax = mFrame.getMinMax();
-
-                var xmin = minMax[0],
-                    xmax = minMax[1],
-                    ymin = minMax[2],
-                    ymax = minMax[3];
-
-                var deltaX, deltaY, i, j;
-
-                var scale = mFrame.getOption('scale'),
-                    ppup = mFrame.getOption('ppup')
-                ;
-
-                deltaX = 1 / (scale[0] * ppup[0]);
-                deltaY = 1 / (scale[1] * ppup[1]);
-
-                var points = [];
-
-                for (i=xmin ; i<xmax; i = i + deltaX) {
-
-                    for (j=ymin ; j<ymax; j = j + deltaY) {
-
-                        var rank = fractalFn([i,j]);
-
-                        if (null === rank) {
-                            continue;
-                        }
-
-                        if (undefined === points[rank]) {
-                            points[rank] = [];
-                        }
-
-                        points[rank].push([i,j]);
-                    }
-                }
-
-                var totalCount = points.reduce(countTotal, 0);
-
-                var cumulativeCount = 0;
-
-                points.map(drawPoints);
+                return drawingFractal;
 
                 /**
-                 * countTotal
-                 * @param count
-                 * @param rank
-                 * @returns {number}
+                 * drawingFractal
+                 * @param draw
+                 * @param fractalFn
                  */
-                function countTotal(count, rank)
+                function drawingFractal(draw)
                 {
-                    return count + (Array.isArray(rank) ? rank.length : 0);
-                }
+                    var mFrame = draw.getFrame();
+                    var minMax = mFrame.getMinMax();
 
-                /**
-                 * drawPoints
-                 * @param points
-                 */
-                function drawPoints(points)
-                {
-                    if (!Array.isArray(points) || 0 === points.length) {
-                        return;
+                    var xmin = minMax[0],
+                        xmax = minMax[1],
+                        ymin = minMax[2],
+                        ymax = minMax[3];
+
+                    var deltaX, deltaY, i, j;
+
+                    var scale = mFrame.getOption('scale'),
+                        ppup = mFrame.getOption('ppup')
+                    ;
+
+                    deltaX = 1 / (scale[0] * ppup[0]);
+                    deltaY = 1 / (scale[1] * ppup[1]);
+
+                    var points = [];
+
+                    for (i=xmin ; i<xmax; i = i + deltaX) {
+
+                        for (j=ymin ; j<ymax; j = j + deltaY) {
+
+                            var rank = fractalFn([i,j]);
+
+                            if (null === rank) {
+                                continue;
+                            }
+
+                            if (undefined === points[rank]) {
+                                points[rank] = [];
+                            }
+
+                            points[rank].push([i,j]);
+                        }
                     }
 
-                    cumulativeCount += points.length;
+                    var totalCount = points.reduce(countTotal, 0);
 
-                    var color = calcColor(cumulativeCount / totalCount);
+                    var cumulativeCount = 0;
 
-                    points.map(function(p) {
-                        draw.point([p[0], p[1]], color);
-                    });
+                    points.map(drawPoints);
+
+                    /**
+                     * countTotal
+                     * @param count
+                     * @param rank
+                     * @returns {number}
+                     */
+                    function countTotal(count, rank)
+                    {
+                        return count + (Array.isArray(rank) ? rank.length : 0);
+                    }
+
+                    /**
+                     * drawPoints
+                     * @param points
+                     */
+                    function drawPoints(points)
+                    {
+                        if (!Array.isArray(points) || 0 === points.length) {
+                            return;
+                        }
+
+                        cumulativeCount += points.length;
+
+                        var color = calcColor(cumulativeCount / totalCount);
+
+                        points.map(function(p) {
+                            draw.point([p[0], p[1]], color);
+                        });
+                    }
                 }
             }
 
