@@ -102,6 +102,10 @@
                     return viewport.getMinMax();
                 },
 
+                getCanvas : function() {
+                    return element;
+                },
+
                 draw : function() {
 
                     viewport = buildViewport();

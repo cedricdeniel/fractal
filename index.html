@@ -139,28 +139,29 @@
                  */
                 function drawingFractal(draw)
                 {
-                    var mFrame = draw.getFrame();
-                    var minMax = mFrame.getMinMax();
+                    var mFrame      = draw.getFrame();
+                    var canvas      = mFrame.getCanvas();
+                    var size        = canvas.getBoundingClientRect();
+                    var matrix2d    = canvas.getContext('2d').getTransform();
+                    var scale       = mFrame.getOption('scale');
+                    var ppup        = mFrame.getOption('ppup');
 
-                    var xmin = minMax[0],
-                        xmax = minMax[1],
-                        ymin = minMax[2],
-                        ymax = minMax[3];
-
-                    var deltaX, deltaY, i, j;
-
-                    var scale = mFrame.getOption('scale'),
-                        ppup = mFrame.getOption('ppup')
-                    ;
-
-                    deltaX = 1 / (scale[0] * ppup[0]);
-                    deltaY = 1 / (scale[1] * ppup[1]);
+                    var deltaX = Math.round(1 / ppup[0]);
+                    var deltaY = Math.round(1 / ppup[1]);
 
                     var points = [];
 
-                    for (i=xmin ; i<xmax; i = i + deltaX) {
+                    for (var threadX = 0; threadX < size.width; threadX += deltaX) {
 
-                        for (j=ymin ; j<ymax; j = j + deltaY) {
+                        for (var threadY = 0; threadY < size.height; threadY += deltaY) {
+
+                            // @see https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-settransform
+                            var i = (threadX - matrix2d.e) / matrix2d.a;
+                            var j = (threadY - matrix2d.f) / matrix2d.d;
+
+                            // Apply scale
+                            i = i * (1 / scale[0]);
+                            j = j * (1 / scale[1]);
 
                             var rank = fractalFn([i,j]);
 
