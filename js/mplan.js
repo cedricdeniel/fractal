@@ -29,7 +29,9 @@
          */
         function buildFrame(element, opts)
         {
-            getContext().setTransform(1, 0, 0, -1, element.width / 2, element.height / 2);
+            var transformMatrix = new DOMMatrix();
+
+            setTransform(1, 0, 0, -1, element.width / 2, element.height / 2);
 
             // Default options
             var options = {
@@ -45,8 +47,7 @@
             options.defaultScale    = options.scale;
 
             var drawFn      = noop,
-                drawObject  = buildDrawObject(),
-                viewport    = buildViewport()
+                drawObject  = buildDrawObject()
             ;
 
             var frame = {
@@ -70,16 +71,17 @@
                 },
 
                 setCenter : function(value) {
+
                     setOption('center', value);
 
-                    var c = transformLocalToGlobal(value);
+                    var c = applyScale(value, getOption('scale'));
 
-                    var matrix = getContext().getTransform();
+                    var matrix2d = getTransform();
 
-                    matrix.e = (element.width / 2) - c[0];
-                    matrix.f = (element.height / 2) + c[1];
+                    matrix2d.e = (element.width / 2) - (matrix2d.a * c[0]);
+                    matrix2d.f = (element.height / 2) - (matrix2d.d * c[1]);
 
-                    getContext().setTransform(matrix);
+                    setTransform(matrix2d);
                 },
 
                 setRadius : function(value) {
@@ -98,17 +100,17 @@
 
                 getOption : getOption,
 
-                getMinMax : function() {
-                    return viewport.getMinMax();
-                },
-
                 getCanvas : function() {
                     return element;
                 },
 
-                draw : function() {
+                transformGlobalToLocal : transformGlobalToLocal,
 
-                    viewport = buildViewport();
+                transformLocalToGlobal : transformLocalToGlobal,
+
+                getMinMax : getMinMax,
+
+                draw : function() {
 
                     console.log('%cDrawing...', 'font-weight:800;');
                     console.log('Origin', '[', getOption('center')[0], ',', getOption('center')[1], ']');
@@ -163,11 +165,10 @@
                     event.stopPropagation();
                     event.preventDefault();
 
-                    var matrix = getContext().getTransform();
-
-                    var p1 = [matrix.a * (event.offsetX - matrix.e), matrix.d * (event.offsetY - matrix.f)];
-
-                    var p = transformGlobalToLocal(p1);
+                    var p = transformGlobalToLocal([
+                        event.offsetX,
+                        event.offsetY,
+                    ]);
 
                     var zoom = (direction === 'out') ? [getOption('zoom')[0] / 2, getOption('zoom')[0] / 2]
                         : [2 * getOption('zoom')[0], 2 * getOption('zoom')[0]];
@@ -210,6 +211,34 @@
             }
 
             /**
+             * setTransform
+             * @param a
+             * @param b
+             * @param c
+             * @param d
+             * @param e
+             * @param f
+             */
+            function setTransform(a, b, c, d, e, f)
+            {
+                if (a instanceof DOMMatrix) {
+                    transformMatrix = a;
+                    return;
+                }
+
+                transformMatrix = new DOMMatrix(arguments);
+            }
+
+            /**
+             * getTransform
+             * @returns {DOMMatrix}
+             */
+            function getTransform()
+            {
+                return transformMatrix;
+            }
+
+            /**
              * noop
              */
             function noop() {
@@ -225,7 +254,7 @@
                     return;
                 }
 
-                var minMax = viewport.getMinMax();
+                var minMax = getMinMax();
 
                 var xmin = minMax[0],
                     xmax = minMax[1],
@@ -287,7 +316,15 @@
             {
                 var scale = getOption('scale');
 
-                return applyScale(p, scale);
+                p = applyScale(p, scale);
+
+                var matrix2d = getTransform();
+
+                // @see https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-settransform
+                return [
+                    matrix2d.a * p[0] + matrix2d.e,
+                    matrix2d.d * p[1] + matrix2d.f,
+                ];
             }
 
             /**
@@ -297,9 +334,47 @@
              */
             function transformGlobalToLocal(p)
             {
+                var matrix2d = getTransform();
+
+                // @see https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-settransform
+                p = [
+                    (p[0] - matrix2d.e) / matrix2d.a,
+                    (p[1] - matrix2d.f) / matrix2d.d,
+                ];
+
                 var scale = getOption('scale');
 
                 return applyScale(p, [1 / scale[0], 1 / scale[1]]);
+            }
+
+            /**
+             * getMinMax
+             * @returns {number[]}
+             */
+            function getMinMax() {
+
+                var min = transformGlobalToLocal([0, 0]);
+                var max =  transformGlobalToLocal([element.width, element.height]);
+
+                var x_min, x_max, y_min, y_max;
+
+                if (min[0] < max[0]) {
+                    x_min = min[0];
+                    x_max = max[0];
+                } else {
+                    x_min = max[0];
+                    x_max = min[0];
+                }
+
+                if (min[1] < max[1]) {
+                    y_min = min[1];
+                    y_max = max[1];
+                } else {
+                    y_min = max[1];
+                    y_max = min[1];
+                }
+
+                return [x_min, x_max, y_min, y_max];
             }
 
             /**
@@ -311,23 +386,12 @@
                 return {
 
                     clear : function clear() {
-
-                        var context = getContext();
-
-                        var matrix = context.getTransform();
-
-                        context.setTransform(1, 0, 0, 1, 0, 0);
-
-                        context.clearRect(0, 0, element.width, element.height);
-
-                        context.setTransform(matrix);
+                        getContext().clearRect(0, 0, element.width, element.height);
                     },
 
                     point : function point(p, color) {
 
                         color = color ? color : getOption('defaultColor');
-
-                        p = transformLocalToGlobal(p);
 
                         var context = getContext();
 
@@ -339,48 +403,6 @@
                         return frame;
                     }
                 };
-            }
-
-            /**
-             * buildViewport
-             * @returns {{min: number[], max: number[], getMinMax: (function(): [number, number, number, number])}}
-             */
-            function buildViewport()
-            {
-                var matrix = getContext().getTransform()
-
-                var min = [matrix.a * (0 - matrix.e), matrix.d * (0 - matrix.f)];
-                var max = [matrix.a * (element.width - matrix.e), matrix.d * (element.height - matrix.f)];
-
-                return {
-
-                    min : transformGlobalToLocal(min),
-
-                    max : transformGlobalToLocal(max),
-
-                    getMinMax : function() {
-
-                        var x_min, x_max, y_min, y_max;
-
-                        if (this.min[0] < this.max[0]) {
-                            x_min = this.min[0];
-                            x_max = this.max[0];
-                        } else {
-                            x_min = this.max[0];
-                            x_max = this.min[0];
-                        }
-
-                        if (this.min[1] < this.max[1]) {
-                            y_min = this.min[1];
-                            y_max = this.max[1];
-                        } else {
-                            y_min = this.max[1];
-                            y_max = this.min[1];
-                        }
-
-                        return [x_min, x_max, y_min, y_max];
-                    }
-                }
             }
         }
 

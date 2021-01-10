@@ -140,10 +140,7 @@
                 function drawingFractal(draw)
                 {
                     var mFrame      = draw.getFrame();
-                    var canvas      = mFrame.getCanvas();
-                    var size        = canvas.getBoundingClientRect();
-                    var matrix2d    = canvas.getContext('2d').getTransform();
-                    var scale       = mFrame.getOption('scale');
+                    var size        = mFrame.getCanvas().getBoundingClientRect();
                     var ppup        = mFrame.getOption('ppup');
 
                     var deltaX = Math.round(1 / ppup[0]);
@@ -155,15 +152,9 @@
 
                         for (var threadY = 0; threadY < size.height; threadY += deltaY) {
 
-                            // @see https://html.spec.whatwg.org/multipage/canvas.html#dom-context-2d-settransform
-                            var i = (threadX - matrix2d.e) / matrix2d.a;
-                            var j = (threadY - matrix2d.f) / matrix2d.d;
+                            var p = mFrame.transformGlobalToLocal([threadX, threadY]);
 
-                            // Apply scale
-                            i = i * (1 / scale[0]);
-                            j = j * (1 / scale[1]);
-
-                            var rank = fractalFn([i,j]);
+                            var rank = fractalFn(p);
 
                             if (null === rank) {
                                 continue;
@@ -173,7 +164,7 @@
                                 points[rank] = [];
                             }
 
-                            points[rank].push([i,j]);
+                            points[rank].push([threadX, threadY]);
                         }
                     }
 
