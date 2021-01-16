@@ -20,28 +20,29 @@
         <form>
             <fieldset>
                 <legend>Shape</legend>
-                <button type="button" id="btn-draw-geom">Geometric</button>
+<!--                <button type="button" id="btn-draw-geom">Geometric</button>-->
                 <button type="button" id="btn-draw-mbrot">Mandelbrot</button>
                 <button type="button" id="btn-draw-julia-1">Julia (0, 1)</button>
-                <button type="button" id="btn-draw-julia-2">Julia (-1.476, 0)</button>
-                <button type="button" id="btn-draw-julia-3">Julia (-.8, 0)</button>
-                <button type="button" id="btn-draw-julia-4">Julia (0.285, 0.013)</button>
-                <button type="button" id="btn-draw-reset">Reset</button>
+<!--                <button type="button" id="btn-draw-julia-2">Julia (-1.476, 0)</button>-->
+<!--                <button type="button" id="btn-draw-julia-3">Julia (-.8, 0)</button>-->
+<!--                <button type="button" id="btn-draw-julia-4">Julia (0.285, 0.013)</button>-->
+<!--                <button type="button" id="btn-draw-reset">Reset</button>-->
             </fieldset>
-            <fieldset class="rest">
-                <legend>Frame options</legend>
+<!--            <fieldset class="rest">-->
+<!--                <legend>Frame options</legend>-->
 
-                <label for="inpt-draw-axis">Draw axis : </label>
-                <input type="checkbox" id="inpt-draw-axis" />
-            </fieldset>
+<!--                <label for="inpt-draw-axis">Draw axis : </label>-->
+<!--                <input type="checkbox" id="inpt-draw-axis" />-->
+<!--            </fieldset>-->
         </form>
     </header>
     <section>
         <canvas id="plan" width="900" height="900" style="background:black;"><p>Désolé, votre navigateur ne supporte pas Canvas.</p></canvas>
     </section>
 
+    <script src="https://cdn.jsdelivr.net/npm/gpu.js@latest/dist/gpu-browser.min.js"></script>
     <script src="js/math.js"></script>
-    <script src="js/fractal.js"></script>
+<!--    <script src="js/fractal.js"></script>-->
     <script src="js/mplan.js"></script>
     <script>
         (function() {
@@ -56,51 +57,65 @@
 
             mplan('#plan', options);
 
-            formControl(document.querySelector('form'), options);
-
-            // Form control
-            function formControl(form, opts)
-            {
-                var options = opts || {};
-
-                var inptDrawAxis = form.querySelector('#inpt-draw-axis');
-
-                inptDrawAxis.checked = options.drawAxis;
-
-                inptDrawAxis.addEventListener('click', function(event) {
-
-                    event.stopPropagation();
-
-                    // Do not prevent default otherwise input is never checked
-                    // event.preventDefault();
-
-                    var mFrame = canvas.getFrame();
-
-                    mFrame.setDrawAxis(inptDrawAxis.checked);
-
-                    // Delay draw call to avoid delay on input checking behaviour
-                    window.setTimeout(function() {
-                        mFrame.draw();
-                    });
-                });
-            }
+            // formControl(document.querySelector('form'), options);
+            //
+            // // Form control
+            // function formControl(form, opts)
+            // {
+            //     var options = opts || {};
+            //
+            //     var inptDrawAxis = form.querySelector('#inpt-draw-axis');
+            //
+            //     inptDrawAxis.checked = options.drawAxis;
+            //
+            //     inptDrawAxis.addEventListener('click', function(event) {
+            //
+            //         event.stopPropagation();
+            //
+            //         // Do not prevent default otherwise input is never checked
+            //         // event.preventDefault();
+            //
+            //         var mFrame = canvas.getFrame();
+            //
+            //         mFrame.setDrawAxis(inptDrawAxis.checked);
+            //
+            //         // Delay draw call to avoid delay on input checking behaviour
+            //         window.setTimeout(function() {
+            //             mFrame.draw();
+            //         });
+            //     });
+            // }
 
             var canvas  = document.querySelector('#plan');
 
-            var drawNoop = draw(function() {});
-            var drawGeometric = draw(fractalShape(Fractal.geometric));
-            var drawMandelbrot = draw(fractalShape(Fractal.mandelbrot));
-            var drawDendrite = draw(fractalShape(Fractal.dendrite));
+            var gpu = new GPU({
+                mode: 'gpu',
+                canvas : canvas,
+                context: canvas.getContext('webgl2'),
+            });
+
+            gpu.addFunction(cplxAdd);
+            gpu.addFunction(cplxMult);
+            gpu.addFunction(cplxPow);
+            gpu.addFunction(modulus);
+
+            mandelbrotKernel.$inject    = [mandelbrot];
+            dendriteKernel.$inject      = [dendrite];
+
+            // var drawNoop = draw(function() {});
+            // var drawGeometric = draw(fractalShape(Fractal.geometric));
+            var drawMandelbrot = draw(gpuFractalShape(mandelbrotKernel));
+            var drawDendrite = draw(gpuFractalShape(dendriteKernel));
 
             drawMandelbrot();
 
-            document.querySelector('#btn-draw-reset').addEventListener('click', drawNoop);
-            document.querySelector('#btn-draw-geom').addEventListener('click', drawGeometric);
+            // document.querySelector('#btn-draw-reset').addEventListener('click', drawNoop);
+            // document.querySelector('#btn-draw-geom').addEventListener('click', drawGeometric);
             document.querySelector('#btn-draw-mbrot').addEventListener('click', drawMandelbrot);
             document.querySelector('#btn-draw-julia-1').addEventListener('click', drawDendrite);
-            document.querySelector('#btn-draw-julia-2').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([-1.476, 0]))));
-            document.querySelector('#btn-draw-julia-3').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([-.8, 0]))));
-            document.querySelector('#btn-draw-julia-4').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([0.285, 0.013]))));
+            // document.querySelector('#btn-draw-julia-2').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([-1.476, 0]))));
+            // document.querySelector('#btn-draw-julia-3').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([-.8, 0]))));
+            // document.querySelector('#btn-draw-julia-4').addEventListener('click', draw(fractalShape(Fractal.buildJuliaSet([0.285, 0.013]))));
 
             /**
              * draw
@@ -207,22 +222,302 @@
             }
 
             /**
+             * gpuFractalShape
+             * @param fractalKernelFn
+             */
+            function gpuFractalShape(fractalKernelFn)
+            {
+                return drawingFractal;
+
+                /**
+                 * drawingFractal
+                 * @param draw
+                 */
+                function drawingFractal(draw)
+                {
+                    var mFrame      = draw.getFrame();
+                    var size        = mFrame.getCanvas().getBoundingClientRect();
+
+                    /** prepare transform matrix for use it in gpu.js */
+                    var matrix2d = [
+                        mFrame.getTransform().a,
+                        mFrame.getTransform().b,
+                        mFrame.getTransform().c,
+                        mFrame.getTransform().d,
+                        mFrame.getTransform().e,
+                        mFrame.getTransform().f,
+                    ];
+
+                    /** prepare scale */
+                    var scale = mFrame.getOption('scale');
+                    scale = [1 / scale[0], 1 / scale[1]];
+
+                    /**
+                     * Kernel #1
+                     */
+                    var fractalKernel = createFractalKernel(fractalKernelFn);
+
+                    /**
+                     * Kernel #2
+                     * @see https://github.com/gpujs/gpu.js#graphical-output
+                     */
+                    var displayPointKernel = gpu.createKernel(displayPoint)
+                        .setOutput([size.width, size.height])
+                        .setGraphical(true)
+                        .setFunctions([
+                            calcColor,
+                            hslToRgb
+                        ])
+                    ;
+
+                    /**
+                     * Kernel #1 - Execute fractal function
+                     */
+                    var textures = fractalKernel(
+                        matrix2d,
+                        scale
+                    );
+
+                    /**
+                     * Count points by rank
+                     */
+
+                    /** init rank counter */
+                    var rankCounter = new Array(2000);
+
+                    /** Init all indexes to use it in gpu.js */
+                    var ii=0;
+
+                    while (ii < 2000) {
+                        rankCounter[ii] = 0;
+                        ii++;
+                    }
+
+                    /** count points */
+                    var texturesAsArray = textures.toArray()
+
+                    texturesAsArray.map(function(threadsX) {
+                        threadsX.map(function(threadXY) {
+
+                            if (-1 === threadXY) return;
+
+                            if (undefined === rankCounter[threadXY]) {
+                                rankCounter[threadXY] = 0;
+                            }
+
+                            rankCounter[threadXY]++;
+                        })
+                    })
+
+                    var totalCount = rankCounter.reduce(function(totalCount, count) {
+                        return totalCount + (count ? count : 0);
+                    }, 0);
+
+                    var cumulativeCount = 0;
+
+                    /**
+                     * Get color by rank
+                     */
+
+                    rankCounter = rankCounter.map(function(count) {
+                        cumulativeCount = cumulativeCount + (count ? count : 0);
+                        return calcColor(cumulativeCount / totalCount);
+                    });
+
+                    /** red */
+                    var rcr = rankCounter.map(function(color) {
+                        return color ? color[0] : 0;
+                    });
+
+                    /** green */
+                    var rcg = rankCounter.map(function(color) {
+                        return color ? color[1] : 0;
+                    });
+
+                    /** blue */
+                    var rcb = rankCounter.map(function(color) {
+                        return color ? color[2] : 0;
+                    });
+
+                    /**
+                     * Kernel #2 - Call kernel to display points on canvas
+                     */
+                    displayPointKernel(textures, rcr, rcg, rcb);
+
+                    /**
+                     * createFractalKernel
+                     * @param kernelFn
+                     */
+                    function createFractalKernel(kernelFn)
+                    {
+                        return gpu.createKernel(kernelFn)
+                            .setPipeline(true)
+                            .setOutput([size.width, size.height])
+                            .setGraphical(false)
+                            .setFunctions(kernelFn.$inject)
+                        ;
+                    }
+
+                    /**
+                     * displayPoint
+                     * @param ranks
+                     * @param rcr
+                     * @param rcg
+                     * @param rcb
+                     */
+                    function displayPoint(ranks, rcr, rcg, rcb)
+                    {
+                        var rank = ranks[this.thread.y][this.thread.x];
+
+                        if (-1 === rank) {
+                            this.color(0,0,0,1);
+                        } else {
+
+                            var r = rcr[rank];
+                            var g = rcg[rank];
+                            var b = rcb[rank];
+
+                            this.color(r/255,g/255,b/255,1);
+                        }
+                    }
+                }
+            }
+
+            /**
              * calcColor
              * @param percent
-             * @returns {string}
+             * @returns {[number, number, number]}
              */
             function calcColor(percent)
             {
-                var startColor = [2, 1, 0],
-                    endColor = [8, .7, .8];
+                var startColor = [2, 1, 0];
+                var endColor = [8, 0.7, 0.8];
 
-                var h, s, l;
+                var h = (Math.round(percent * (endColor[0]-startColor[0])) + startColor[0]) % 360;
+                var s = ((percent * (endColor[1]-startColor[1]) + startColor[1]));
+                var l = ((percent * (endColor[2]-startColor[2]) + startColor[2]));
 
-                h = (Math.round(percent * (endColor[0]-startColor[0])) + startColor[0]) % 360;
-                s = Math.round((percent * (endColor[1]-startColor[1]) + startColor[1]) * 100);
-                l = Math.round((percent * (endColor[2]-startColor[2]) + startColor[2]) * 100);
+                return hslToRgb(h, s, l);
+            }
 
-                return 'hsl(' + h + ',' + s + '%,' + l + '%)';
+            /**
+             * hslToRgb
+             * @param h
+             * @param s
+             * @param l
+             * @returns {number[]}
+             */
+            function hslToRgb(h, s, l)
+            {
+                var r = 0;
+                var g = 0;
+                var b = 0;
+
+                var c = (1 - Math.abs((2 * l) - 1)) * s;
+                var h1 = (h / 60);
+                var x = c * (1 - Math.abs((h1 % 2) - 1));
+                var m = l - (.5 * c);
+
+                var rgb = [0, 0, 0];
+
+                if (h1 >= 5) rgb = [c, 0, x];
+                else if (h1 >= 4) rgb = [x, 0, c];
+                else if (h1 >= 3) rgb = [0, x, c];
+                else if (h1 >= 2) rgb = [0, c, x];
+                else if (h1 >= 1) rgb = [x, c, 0];
+                else if (h1 >= 0) rgb = [c, x, 0];
+
+                r = Math.round((rgb[0] + m) * 255);
+                g = Math.round((rgb[1] + m) * 255);
+                b = Math.round((rgb[2] + m) * 255);
+
+                return [r, g, b];
+            }
+
+            /**
+             * mandelbrotKernel
+             * @parama matrix2d
+             * @parama scale
+             */
+            function mandelbrotKernel(matrix2d, scale)
+            {
+                var p = [this.thread.x, this.thread.y];
+
+                p = [
+                    (p[0] - matrix2d[4]) / matrix2d[0],
+                    (p[1] - matrix2d[5]) / matrix2d[3],
+                ];
+
+                p = [p[0] * scale[0], p[1] * scale[1]];
+
+                return mandelbrot(p, 2000, 2, 2);
+            }
+
+            /**
+             * mandelbrot
+             * @param c
+             * @param maxIterations
+             * @param modulusLimit
+             * @param dimension
+             */
+            function mandelbrot(c, maxIterations, modulusLimit, dimension)
+            {
+                var z = [0,0];
+                var d = dimension;
+
+                for (var i = 0; i < maxIterations; i++) {
+
+                    z = cplxAdd(cplxPow(z, d), c);
+
+                    if (modulus(z) >= modulusLimit) {
+                        return i;
+                    }
+                }
+
+                return -1;
+            }
+
+            /**
+             * dendriteKernel
+             * @parama matrix2d
+             * @parama scale
+             */
+            function dendriteKernel(matrix2d, scale)
+            {
+                var p = [this.thread.x, this.thread.y];
+
+                p = [
+                    (p[0] - matrix2d[4]) / matrix2d[0],
+                    (p[1] - matrix2d[5]) / matrix2d[3],
+                ];
+
+                p = [p[0] * scale[0], p[1] * scale[1]];
+
+                return dendrite(p, 2000, 2, 2);
+            }
+
+            /**
+             * dendrite
+             * @param c
+             * @param maxIterations
+             * @param modulusLimit
+             * @param dimension
+             */
+            function dendrite(c, maxIterations, modulusLimit, dimension)
+            {
+                var z = c;
+                var d = dimension;
+
+                for (var i = 0; i < maxIterations; i++) {
+
+                    z = cplxAdd(cplxPow(z, d), [0,1]);
+
+                    if (modulus(z) >= modulusLimit) {
+                        return i;
+                    }
+                }
+
+                return -1;
             }
         })();
     </script>

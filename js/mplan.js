@@ -31,7 +31,7 @@
         {
             var transformMatrix = new DOMMatrix();
 
-            setTransform(1, 0, 0, -1, element.width / 2, element.height / 2);
+            setTransform(1, 0, 0, 1, element.width / 2, element.height / 2);
 
             // Default options
             var options = {
@@ -104,6 +104,8 @@
                     return element;
                 },
 
+                getTransform : getTransform,
+
                 transformGlobalToLocal : transformGlobalToLocal,
 
                 transformLocalToGlobal : transformLocalToGlobal,
@@ -122,9 +124,9 @@
                             drawFn = arguments[0];
                         }
                     } else {
-                        drawObject.clear();
+                        // drawObject.clear();
                         drawFn(drawObject);
-                        drawAxis(drawObject);
+                        // drawAxis(drawObject);
                     }
 
                     return this;
@@ -167,7 +169,8 @@
 
                     var p = transformGlobalToLocal([
                         event.offsetX,
-                        event.offsetY,
+                        // In webGL context, origin is in bottom left corner
+                        canvas.height - event.offsetY,
                     ]);
 
                     var zoom = (direction === 'out') ? [getOption('zoom')[0] / 2, getOption('zoom')[0] / 2]
@@ -207,7 +210,7 @@
              */
             function getContext()
             {
-                return element.getContext('2d');
+                return element.getContext('webgl2');
             }
 
             /**
@@ -386,7 +389,7 @@
                 return {
 
                     clear : function clear() {
-                        getContext().clearRect(0, 0, element.width, element.height);
+                        // getContext().clearRect(0, 0, element.width, element.height);
                     },
 
                     point : function point(p, color) {

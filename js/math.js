@@ -1,9 +1,9 @@
-(function(Math) {
+(function(window) {
 
-    Math.cplxAdd    = cplxAdd;
-    Math.cplxMult   = cplxMult;
-    Math.cplxPow    = cplxPow;
-    Math.modulus    = modulus;
+    window.cplxAdd    = cplxAdd;
+    window.cplxMult   = cplxMult;
+    window.cplxPow    = cplxPow;
+    window.modulus    = modulus;
 
     /**
      * cplxAdd
@@ -53,7 +53,7 @@
         var p = z;
 
         for (var i=2; i<=n; i++) {
-            p = Math.cplxMult(p, z);
+            p = cplxMult(p, z);
         }
 
         return p;
@@ -69,4 +69,4 @@
         return Math.sqrt(z[0]*z[0]+z[1]*z[1]);
     }
 
-})(Math);
+})(window);
