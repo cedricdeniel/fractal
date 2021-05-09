@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><%= htmlWebpackPlugin.options.title %></title>
+</head>
+<body>
+    <header>
+        <form>
+            <fieldset>
+                <legend>Shape</legend>
+                <button type="button" id="btn-draw-geom">Geometric</button>
+                <button type="button" id="btn-draw-mbrot">Mandelbrot</button>
+                <button type="button" id="btn-draw-julia-1">Julia (0, 1)</button>
+                <button type="button" id="btn-draw-julia-2">Julia (-1.476, 0)</button>
+                <button type="button" id="btn-draw-julia-3">Julia (-.8, 0)</button>
+                <button type="button" id="btn-draw-julia-4">Julia (0.285, 0.013)</button>
+                <button type="button" id="btn-draw-reset">Reset</button>
+            </fieldset>
+            <fieldset class="rest">
+                <legend>Frame options</legend>
+
+                <label for="inpt-draw-axis">Draw axis : </label>
+                <input type="checkbox" id="inpt-draw-axis" />
+            </fieldset>
+        </form>
+    </header>
+    <section>
+        <canvas id="plan" width="900" height="900" style="background:black;"><p>Désolé, votre navigateur ne supporte pas Canvas.</p></canvas>
+    </section>
+</body>
+</html>
